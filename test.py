@@ -1,3 +1,4 @@
+import socket
 import requests
 
 class GameClient:
@@ -47,11 +48,19 @@ class GameClient:
         else:
             print("Erreur lors de la récupération de l'état :", response.text)
 
+def start_client():
+       
+    while True:
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect(("localhost", 9999))
+
+        command = input("Position : ")
+        client.send(command.encode('utf-8'))
+        response = client.recv(1024).decode('utf-8')
+        print(response)
+        if "La partie a commence !" in response:
+            break
+        client.close()
+
 if __name__ == "__main__":
-    server_url = "http://localhost:9999/"  # Adresse du serveur
-    client = GameClient(server_url)
-    client.set_role("villageois")
-    client.get_game_state()
-    client.move("north")
-    #client.interact("potion magique")
-    client.get_game_state()
+    start_client()

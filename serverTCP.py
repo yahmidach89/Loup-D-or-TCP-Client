@@ -1,27 +1,58 @@
-import socketserver
+import socket
+import json
 
-class MyTCPHandler(socketserver.BaseRequestHandler):
-    """
-    The request handler class for our server.
+def handle_client(client_socket):
+    try:
+        request_data = client_socket.recv(4096).decode()
+        if not request_data:
+            return
+        
+        request = json.loads(request_data)
+        response = {"status": "error", "error": "Action non reconnue"}
 
-    It is instantiated once per connection to the server, and must
-    override the handle() method to implement communication to the
-    client.
-    """
+        if request["action"] == "set_role":
+            role = request.get("role", "")
+            if role in ['villageois', 'vif d\'or', 'loup garou']:
+                response = {"status": "success"}
+            else:
+                response = {"status": "error", "error": "Rôle invalide"}
+        elif request["action"] == "move":
+            direction = request.get("direction", "")
+            if direction in ['north', 'south', 'east', 'west']:
+                response = {"status": "success", "new_position": "x=10, y=20"}
+            else:
+                response = {"status": "error", "error": "Direction invalide"}
+        elif request["action"] == "get_state":
+            response = {
+                "status": "success",
+                "map": "Carte de test",
+                "nearby_objects": ["arbre", "pierre"],
+                "time_remaining": "5:00"
+            }
+        elif request["action"] == "interact":
+            object_name = request.get("object_name", "")
+            if object_name:
+                response = {"status": "success", "result": f"Interaction réussie avec {object_name}"}
+            else:
+                response = {"status": "error", "error": "Objet non spécifié"}
 
-    def handle(self):
-        # self.request is the TCP socket connected to the client
-        self.data = self.request.recv(1024).strip()
-        print("Received from {}:".format(self.client_address[0]))
-        print(self.data)
-        # just send back the same data, but upper-cased
-        self.request.sendall(self.data.upper())
+        client_socket.sendall(json.dumps(response).encode())
+    except Exception as e:
+        print("Erreur serveur :", e)
+        client_socket.sendall(json.dumps({"status": "error", "error": str(e)}).encode())
+    finally:
+        client_socket.close()
 
 if __name__ == "__main__":
-    HOST, PORT = "localhost", 9999
+    server_address = "localhost"
+    server_port = 9999
 
-    # Create the server, binding to localhost on port 9999
-    with socketserver.TCPServer((HOST, PORT), MyTCPHandler) as server:
-        # Activate the server; this will keep running until you
-        # interrupt the program with Ctrl-C
-        server.serve_forever()
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((server_address, server_port))
+    server_socket.listen(5)
+    print(f"Serveur démarré sur {server_address}:{server_port}")
+
+    while True:
+        client_socket, addr = server_socket.accept()
+        print("Connexion reçue de :", addr)
+        handle_client(client_socket)
