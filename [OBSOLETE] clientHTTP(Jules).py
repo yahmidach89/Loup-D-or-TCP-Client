@@ -127,7 +127,7 @@ if __name__ == "__main__":
     client = GameClient(server_address, server_port)
     client.connect()
 
-    print("Bienvenue dans le Loup d'Or !\n")
+    print("Bienvenue dans le jeu !")
     while not client.player_name:
         player_name = input("Entrez votre nom : ").strip()
         if player_name:
@@ -139,8 +139,8 @@ if __name__ == "__main__":
         print("Voici les rôles disponibles : villageois, vif d'or, loup garou")
         client.set_role(input("Veuillez en choisir un : ").strip())
 
-    print(f"Bienvenue \033[91m{client.player_name}\033[0m !\n")
-    print("Commandes disponibles : set_role, move<direction>, interact, get_game_state, quit")
+    print(f"Bienvenue {client.player_name} !")
+    print("Commandes disponibles : set_role, move, interact, get_game_state, start_game, quit")
 
     try:
         while True:
@@ -151,8 +151,11 @@ if __name__ == "__main__":
             if command == "quit":
                 print("Fin du jeu.")
                 break
+            elif command == "start_game":
+                client.game_started = True
+                print("La partie commence !")
             elif command == "help":
-                print("Commandes disponibles : set_role, move, interact, get_game_state, quit")
+                print("Commandes disponibles : set_role, move, interact, get_game_state, start_game, quit")
             else:
                 client.execute_command(command, *args)
     except KeyboardInterrupt:
