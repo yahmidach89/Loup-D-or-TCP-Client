@@ -1,7 +1,5 @@
 import socket
 import json
-import os
-import platform
 
 class GameClient:
     def __init__(self, server_host, server_port):
@@ -11,9 +9,11 @@ class GameClient:
         self.client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def connect(self):
+        """Connect to the game server using a socket."""
         self.client_socket.connect((self.server_host, self.server_port))
 
     def send_command(self, command):
+        """Send a command to the server and receive the response."""
         self.client_socket.send(command.encode('utf-8'))
         response = self.client_socket.recv(1024).decode('utf-8')
         return response
@@ -65,24 +65,13 @@ class GameClient:
         else:
             print("Erreur lors de la récupération de l'état.")
 
-def clear_console():
-    system = platform.system()
-    if system == "Windows":
-        os.system('cls')
-    else:
-        os.system('clear')
-
 def start_client():
-    clear_console()
     server_host = "localhost"
     server_port = 9999
-    
-    username = input("Entrez votre nom d'utilisateur : ")
-    clear_console()
     client = GameClient(server_host, server_port)
+
     client.connect()
-    print("Connecté au serveur de jeu.\n")
-    print(f"Bonjour \033[91m{username}\033[0m, bienvenue sur le Loup d'Or !\n")
+    print("Connecté au serveur de jeu.")
 
     while True:
         command = input("Entrez une commande : ")
