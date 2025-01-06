@@ -20,11 +20,11 @@ class GameClient:
             print("Erreur de connexion au serveur :", e)
             exit()
 
-    def send_request(self, action, payload):
+    def send_request(self, action):
         """Envoie une requête au serveur et retourne la réponse."""
         try:
             # Créer un message JSON avec l'action et le payload
-            message = json.dumps({"action": action, "payload": payload})
+            message = json.dumps({"action": action})
             self.socket.sendall(message.encode())
 
             # Recevoir la réponse du serveur
@@ -33,10 +33,64 @@ class GameClient:
         except Exception as e:
             print("Erreur lors de l'envoi de la requête :", e)
             return None
+        
+    # def subscribe(self):
+    #     """Envoie une requête au serveur et retourne la réponse."""
+    #     try:
+    #         # Créer un message JSON avec l'action et le payload
+    #         message = json.dumps({"role": self.role, "pseudo": self.player_name})
+    #         self.socket.sendall(message.encode())
+
+    #         # Recevoir la réponse du serveur
+    #         response = self.socket.recv(4096).decode()
+    #         print(response)
+    #         return json.loads(response)
+    #     except Exception as e:
+    #         print("Erreur lors de l'envoi de la requête :", e)
+    #         return None
+
+    def subscribe(self):
+        """Envoie une requête au serveur et retourne la réponse."""
+        try:
+            # Créer un message JSON avec l'action et le payload
+            message = json.dumps({"role": self.role, "pseudo": self.player_name})
+            print(message)
+            self.socket.sendall(message.encode())
+
+            # Recevoir la réponse du serveur
+            response = self.socket.recv(4096).decode()
+
+            if response:
+                response_json = json.loads(response)
+                return response_json
+            else:
+                print("Erreur : Aucune réponse reçue du serveur.")
+                return None
+        except Exception as e:
+            print("Erreur lors de l'envoi de la requête :", e)
+            return None
+
 
     def set_name(self, name):
         """Définit le nom du joueur."""
         self.player_name = name
+
+    # def set_role(self, role):
+    #     if self.game_started:
+    #         print("Erreur : Vous ne pouvez plus changer de rôle après le début de la partie.")
+    #         return
+
+    #     roles = ['villageois', 'vif d\'or', 'loup garou']
+    #     if role not in roles:
+    #         print("Erreur : Rôle invalide. Choisissez parmi :", roles)
+    #         return
+
+    #     response = self.subscribe()
+    #     if response and response.get("status") == "success":
+    #         self.role = role
+    #         print(f"Rôle attribué : {role}")
+    #     else:
+    #         print("Erreur lors de la définition du rôle :", response.get("message", "Réponse invalide."))
 
     def set_role(self, role):
         if self.game_started:
@@ -48,12 +102,15 @@ class GameClient:
             print("Erreur : Rôle invalide. Choisissez parmi :", roles)
             return
 
-        response = self.send_request("set_role", {"role": role, "player_name": self.player_name})
-        if response and response.get("status") == "success":
-            self.role = role
-            print(f"Rôle attribué : {role}")
+        response = self.subscribe()
+        if response:
+            if response.get("status") == "success":
+                self.role = role
+                print(f"Rôle attribué : {role}")
+            else:
+                print("Erreur lors de la définition du rôle :", response.get("message", "Réponse invalide."))
         else:
-            print("Erreur lors de la définition du rôle :", response.get("message", "Réponse invalide."))
+            print("Erreur lors de la définition du rôle : aucune réponse du serveur.")
 
     def move(self, direction):
         if not self.game_started:
@@ -103,6 +160,7 @@ class GameClient:
             print("Erreur lors de la récupération de l'état :", response.get("message", "Réponse invalide."))
 
     def execute_command(self, command, *args):
+        print(command)
         commands = {
             "set_role": lambda: self.set_role(*args),
             "move": lambda: self.move(*args) if args else print("Erreur : Veuillez préciser une direction (nord, sud, est, ouest)."),
@@ -117,12 +175,13 @@ class GameClient:
 
     def disconnect(self):
         """Ferme la connexion avec le serveur."""
+
         self.socket.close()
         print("Déconnecté du serveur.")
 
 if __name__ == "__main__":
-    server_address = "localhost"  # Adresse du serveur
-    server_port = 9999  # Port du serveur
+    server_address = "172.25.1.10"
+    server_port = 9999
 
     client = GameClient(server_address, server_port)
     client.connect()
@@ -132,6 +191,7 @@ if __name__ == "__main__":
         player_name = input("Entrez votre nom : ").strip()
         if player_name:
             client.set_name(player_name)
+            client.subscribe()
         else:
             print("Erreur : Le nom ne peut pas être vide. Veuillez réessayer.")
 
@@ -151,6 +211,9 @@ if __name__ == "__main__":
             if command == "quit":
                 print("Fin du jeu.")
                 break
+            elif command == "start_game":
+                client.game_started = True
+                print("La partie commence !")
             elif command == "help":
                 print("Commandes disponibles : set_role, move, interact, get_game_state, quit")
             else:
