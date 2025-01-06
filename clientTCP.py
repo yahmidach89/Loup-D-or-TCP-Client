@@ -20,11 +20,11 @@ class GameClient:
             print("Erreur de connexion au serveur :", e)
             exit()
 
-    def send_request(self, action):
+    def send_request(self, action, options = ""):
         """Envoie une requête au serveur et retourne la réponse."""
         try:
             # Créer un message JSON avec l'action et le payload
-            message = json.dumps({"action": action})
+            message = json.dumps({"action": action, "options": options})
             self.socket.sendall(message.encode())
 
             # Recevoir la réponse du serveur
@@ -33,21 +33,6 @@ class GameClient:
         except Exception as e:
             print("Erreur lors de l'envoi de la requête :", e)
             return None
-        
-    # def subscribe(self):
-    #     """Envoie une requête au serveur et retourne la réponse."""
-    #     try:
-    #         # Créer un message JSON avec l'action et le payload
-    #         message = json.dumps({"role": self.role, "pseudo": self.player_name})
-    #         self.socket.sendall(message.encode())
-
-    #         # Recevoir la réponse du serveur
-    #         response = self.socket.recv(4096).decode()
-    #         print(response)
-    #         return json.loads(response)
-    #     except Exception as e:
-    #         print("Erreur lors de l'envoi de la requête :", e)
-    #         return None
 
     def subscribe(self, role):
         """Envoie une requête au serveur et retourne la réponse."""
@@ -74,23 +59,6 @@ class GameClient:
     def set_name(self, name):
         """Définit le nom du joueur."""
         self.player_name = name
-
-    # def set_role(self, role):
-    #     if self.game_started:
-    #         print("Erreur : Vous ne pouvez plus changer de rôle après le début de la partie.")
-    #         return
-
-    #     roles = ['villageois', 'vif d\'or', 'loup garou']
-    #     if role not in roles:
-    #         print("Erreur : Rôle invalide. Choisissez parmi :", roles)
-    #         return
-
-    #     response = self.subscribe()
-    #     if response and response.get("status") == "success":
-    #         self.role = role
-    #         print(f"Rôle attribué : {role}")
-    #     else:
-    #         print("Erreur lors de la définition du rôle :", response.get("message", "Réponse invalide."))
 
     def set_role(self, role):
         if self.game_started:
@@ -150,22 +118,28 @@ class GameClient:
 
     def get_game_state(self):
         response = self.send_request("get_game_state", {"player_name": self.player_name})
-        if response and response.get("status") == "success":
-            data = response.get("data", {})
-            self.game_started = data.get("game_started", False)
-            print("Carte actuelle :", data.get("map"))
-            print("Objets autour :", data.get("nearby_objects"))
-            print("Temps restant :", data.get("time_remaining"))
-            print("Partie commencée :", self.game_started)
+        if response:  # Vérifie si la réponse est non nulle
+            if response.get("status") == "success":
+                data = response.get("data", {})
+                self.game_started = data.get("game_started", False)
+                print("Carte actuelle :", data.get("map"))
+                print("Objets autour :", data.get("nearby_objects"))
+                print("Temps restant :", data.get("time_remaining"))
+                print("Partie commencée :", self.game_started)
+            else:
+                print("Erreur lors de la récupération de l'état :", response.get("message", "Réponse invalide."))
         else:
-            print("Erreur lors de la récupération de l'état :", response.get("message", "Réponse invalide."))
+            print("Erreur : Aucune réponse du serveur ou connexion perdue.")
+
 
     def execute_command(self, command, *args):
         print(command)
         commands = {
-            "set_role": lambda: self.set_role(*args),
+            "set_role": lambda: self.set_role(args[0]) if args else print("Erreur : Veuillez spécifier un rôle."),
+
+
             "move": lambda: self.move(*args) if args else print("Erreur : Veuillez préciser une direction (nord, sud, est, ouest)."),
-            "interact": lambda: self.interact(*args),
+            "interact": lambda: self.interact(args[0]) if args else print("Erreur : Veuillez spécifier un objet avec lequel interagir."),
             "get_game_state": lambda: self.get_game_state(),
         }
 
