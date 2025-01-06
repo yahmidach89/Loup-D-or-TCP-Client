@@ -49,11 +49,11 @@ class GameClient:
     #         print("Erreur lors de l'envoi de la requête :", e)
     #         return None
 
-    def subscribe(self):
+    def subscribe(self, role):
         """Envoie une requête au serveur et retourne la réponse."""
         try:
             # Créer un message JSON avec l'action et le payload
-            message = json.dumps({"role": self.role, "pseudo": self.player_name})
+            message = json.dumps({"pseudo": self.player_name, "role": role})
             print(message)
             self.socket.sendall(message.encode())
 
@@ -102,7 +102,8 @@ class GameClient:
             print("Erreur : Rôle invalide. Choisissez parmi :", roles)
             return
 
-        response = self.subscribe()
+        self.role = role
+        response = self.subscribe(role)
         if response:
             if response.get("status") == "success":
                 self.role = role
@@ -191,7 +192,7 @@ if __name__ == "__main__":
         player_name = input("Entrez votre nom : ").strip()
         if player_name:
             client.set_name(player_name)
-            client.subscribe()
+            # client.subscribe("villageois")
         else:
             print("Erreur : Le nom ne peut pas être vide. Veuillez réessayer.")
 
